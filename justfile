@@ -56,7 +56,7 @@ integration:
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{example_dir}} && uv run python manage.py migrate --run-syncdb
-    TOKEN=$(cd {{example_dir}} && uv run python manage.py seed_demo 2>&1 | grep -oP 'Admin token: \K\S+')
+    TOKEN=$(cd {{example_dir}} && uv run python manage.py seed_demo 2>&1 | grep -oP '^\s+admin: \K\S+')
     cd {{example_dir}} && uv run python manage.py runserver &
     SERVER_PID=$!
     trap "kill $SERVER_PID 2>/dev/null" EXIT
