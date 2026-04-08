@@ -1,0 +1,3 @@
+# Default config for local dev server (started via `just serve`)
+# Token is generated dynamically by `seed_demo` — set WAGAPI_TOKEN after running it
+url = "http://localhost:8000/api/write/v1"

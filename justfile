@@ -40,8 +40,32 @@ serve:
     cd {{example_dir}} && uv run python manage.py seed_demo
     cd {{example_dir}} && uv run python manage.py runserver
 
+# Pull latest for both repos
+pull:
+    cd {{api_dir}} && git pull
+    cd {{cli_dir}} && git pull
+
 # Show status of both repos
 status:
     @echo "=== wagtail-write-api ===" && cd {{api_dir}} && git status --short --branch
     @echo ""
     @echo "=== wagapi ===" && cd {{cli_dir}} && git status --short --branch
+
+# Integration test: start server, run wagapi against it, stop server
+integration:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd {{example_dir}} && uv run python manage.py migrate --run-syncdb
+    TOKEN=$(cd {{example_dir}} && uv run python manage.py seed_demo 2>&1 | grep -oP 'Admin token: \K\S+')
+    cd {{example_dir}} && uv run python manage.py runserver &
+    SERVER_PID=$!
+    trap "kill $SERVER_PID 2>/dev/null" EXIT
+    sleep 3
+    export WAGAPI_URL=http://localhost:8000/api/write/v1
+    export WAGAPI_TOKEN="$TOKEN"
+    cd {{cli_dir}}
+    echo "=== Schema ===" && wagapi schema
+    echo "=== Pages ===" && wagapi pages list
+    echo "=== Images ===" && wagapi images list
+    echo ""
+    echo "Integration tests passed."
