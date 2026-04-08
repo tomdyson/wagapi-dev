@@ -29,15 +29,18 @@ wagapi schema
 
 ## Quick commands (justfile)
 
-From the workspace root (`/home/sprite/wag-api-work`):
-
 ```bash
+just clone          # git clone both repos (skip if already present)
+just setup          # clone + install deps for both repos
 just test           # run both test suites
 just test-api       # wagtail-write-api tests only
 just test-cli       # wagapi tests only
 just lint           # ruff check + format check
 just fmt            # auto-format
 just serve          # migrate, seed, start dev server
+just pull           # git pull both repos
+just status         # git status of both repos
+just integration    # start server, run wagapi smoke tests, stop server
 ```
 
 ## wagtail-write-api
