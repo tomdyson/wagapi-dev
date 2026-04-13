@@ -2,12 +2,13 @@
 
 ## Workspace overview
 
-This directory contains two related projects by the same author:
+This directory contains three related projects by the same author:
 
 - **wagtail-write-api/** — A read/write REST API plugin for Wagtail CMS, built on Django Ninja. Adds full CRUD for pages and images to Wagtail's read-only API.
 - **wagapi/** — A CLI client for wagtail-write-api, optimised for LLM orchestration. Translates CLI commands into HTTP calls and returns structured output.
+- **wagtail-mobile/** — An Expo (React Native) mobile app for browsing and quick-editing Wagtail content. Dashboard-style interface with page tree browser, page detail/edit, and image gallery.
 
-wagapi depends on a running wagtail-write-api instance. The wagtail-write-api example app provides a local dev server with test data and API tokens.
+wagapi and wagtail-mobile both depend on a running wagtail-write-api instance. The wagtail-write-api example app provides a local dev server with test data and API tokens.
 
 ## Quick start (both projects)
 
@@ -30,16 +31,19 @@ wagapi schema
 ## Quick commands (justfile)
 
 ```bash
-just clone          # git clone both repos (skip if already present)
-just setup          # clone + install deps for both repos
+just clone          # git clone all repos (skip if already present)
+just setup          # clone + install deps for API and CLI
+just setup-mobile   # install mobile app deps (npm install)
 just test           # run both test suites
 just test-api       # wagtail-write-api tests only
 just test-cli       # wagapi tests only
 just lint           # ruff check + format check
 just fmt            # auto-format
 just serve          # migrate, seed, start dev server
-just pull           # git pull both repos
-just status         # git status of both repos
+just dev-mobile     # start Expo dev server for mobile app
+just check-mobile   # TypeScript check for mobile app
+just pull           # git pull all repos
+just status         # git status of all repos
 just integration    # start server, run wagapi smoke tests, stop server
 ```
 
@@ -105,7 +109,39 @@ wagapi
 - Config priority: CLI flags > env vars > `./.wagapi.toml` > `~/.wagapi.toml`
 - Exit codes: 0=success, 2=usage, 3=network, 4=auth, 5=permission, 6=not found, 7=validation
 
-## Working across both repos
+## wagtail-mobile
+
+**Key commands:**
+```bash
+cd wagtail-mobile
+npm install                          # install deps
+npx expo start                       # start Expo dev server
+npx tsc --noEmit                     # TypeScript check
+```
+
+**Architecture:**
+- `app/_layout.tsx` — Root layout with auth gate and AuthContext provider
+- `app/login.tsx` — Login screen (username/password → token exchange)
+- `app/(tabs)/index.tsx` — Pages tab (tree browser, root-level pages)
+- `app/(tabs)/images.tsx` — Images tab (thumbnail grid with search)
+- `app/pages/[id].tsx` — Page detail/edit (edit title/slug, publish/unpublish)
+- `app/pages/children/[parentId].tsx` — Recursive page children browser
+- `app/images/[id].tsx` — Image detail with full-size preview
+- `lib/api.ts` — fetch-based API client with typed endpoints
+- `lib/types.ts` — TypeScript types mirroring API response shapes
+- `lib/auth.ts` — SecureStore read/write for URL + token
+- `lib/hooks/useAuth.ts` — AuthContext and useAuth hook
+- `lib/hooks/usePages.ts` — Page data fetching hooks
+- `lib/hooks/useImages.ts` — Image data fetching hooks
+- `components/PageRow.tsx` — Row in tree list (title, type, status, chevron)
+- `components/StatusBadge.tsx` — Live/Draft status dot indicator
+- `components/ImageCard.tsx` — Thumbnail card for image grid
+
+**Stack:** Expo SDK 54, TypeScript, Expo Router (file-based), expo-secure-store, expo-haptics. No third-party HTTP, state management, or UI component libraries.
+
+**Auth flow:** Username/password login via `POST /auth/token/` endpoint. Token stored in SecureStore. "Disconnect" clears local storage only.
+
+## Working across all repos
 
 - **Always `cd` explicitly before git/test/push commands.** The Bash tool's working directory can drift silently — especially `git push` will push whatever repo you're actually in, not the one you think. Use `cd /home/sprite/wag-api-work/wagtail-write-api && ...` or `cd /home/sprite/wag-api-work/wagapi && ...` rather than relative paths. Put the `cd` in the **same command** as the operation, not in a separate Bash call.
 - **Change wagtail-write-api first, then wagapi.** The API defines the contract; the CLI consumes it. Update and test the API side, then update the client to match.
