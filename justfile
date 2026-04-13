@@ -36,9 +36,19 @@ fmt:
 
 # Start the example dev server (migrate + seed if needed)
 serve:
+    #!/usr/bin/env bash
+    set -euo pipefail
     cd {{example_dir}} && uv run python manage.py migrate --run-syncdb
     cd {{example_dir}} && uv run python manage.py seed_demo
-    cd {{example_dir}} && uv run python manage.py runserver
+    LAN_IP=$(route get default 2>/dev/null | awk '/interface: / { print $2; exit }' | xargs -I{} ipconfig getifaddr {} 2>/dev/null || true)
+    echo "Serving Django on 0.0.0.0:8000"
+    echo "Local: http://127.0.0.1:8000"
+    if [ -n "$LAN_IP" ] && [ "$LAN_IP" != "127.0.0.1" ]; then
+        echo "Phone: http://$LAN_IP:8000"
+    else
+        echo "Phone: unable to determine LAN IP automatically"
+    fi
+    cd {{example_dir}} && uv run python manage.py runserver 0.0.0.0:8000
 
 # Pull latest for both repos
 pull:
