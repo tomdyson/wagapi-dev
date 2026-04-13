@@ -2,17 +2,23 @@
 
 api_dir := justfile_directory() / "wagtail-write-api"
 cli_dir := justfile_directory() / "wagapi"
+mobile_dir := justfile_directory() / "wagtail-mobile"
 example_dir := api_dir / "example"
 
 # Clone both repos (skip if already present)
 clone:
     @if [ ! -d "{{api_dir}}" ]; then git clone https://github.com/tomdyson/wagtail-write-api.git {{api_dir}}; else echo "wagtail-write-api already cloned"; fi
     @if [ ! -d "{{cli_dir}}" ]; then git clone https://github.com/tomdyson/wagapi.git {{cli_dir}}; else echo "wagapi already cloned"; fi
+    @if [ ! -d "{{mobile_dir}}" ]; then git clone https://github.com/tomdyson/wagtail-mobile.git {{mobile_dir}}; else echo "wagtail-mobile already cloned"; fi
 
 # Install dependencies for both repos
 setup: clone
     cd {{api_dir}} && uv sync --extra dev
-    cd {{cli_dir}} && pip install -e ".[dev]"
+    cd {{cli_dir}} && uv venv && uv pip install -e ".[dev]"
+
+# Install mobile app dependencies
+setup-mobile:
+    cd {{mobile_dir}} && npm install
 
 # Run all tests across both repos
 test: test-api test-cli
@@ -23,7 +29,7 @@ test-api:
 
 # wagapi tests
 test-cli:
-    cd {{cli_dir}} && python -m pytest tests/
+    cd {{cli_dir}} && uv run pytest tests/
 
 # Lint + format wagtail-write-api
 lint:
@@ -50,16 +56,27 @@ serve:
     fi
     cd {{example_dir}} && uv run python manage.py runserver 0.0.0.0:8000
 
-# Pull latest for both repos
+# Start Expo dev server for mobile app
+dev-mobile:
+    cd {{mobile_dir}} && npx expo start
+
+# TypeScript check for mobile app
+check-mobile:
+    cd {{mobile_dir}} && npx tsc --noEmit
+
+# Pull latest for all repos
 pull:
     cd {{api_dir}} && git pull
     cd {{cli_dir}} && git pull
+    cd {{mobile_dir}} && git pull
 
-# Show status of both repos
+# Show status of all repos
 status:
     @echo "=== wagtail-write-api ===" && cd {{api_dir}} && git status --short --branch
     @echo ""
     @echo "=== wagapi ===" && cd {{cli_dir}} && git status --short --branch
+    @echo ""
+    @echo "=== wagtail-mobile ===" && cd {{mobile_dir}} && git status --short --branch
 
 # Integration test: start server, run wagapi against it, stop server
 integration:
